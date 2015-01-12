@@ -1,0 +1,14 @@
+# mesh_ovs
+mesh metwork with ovs openflow controller
+
+    这四个文件均为pox控制器程序，目的是为了实现mesh网络（batman.adv协议）和openflow（ovs实现的交换机）的结合，根据mesh网络提供的无线网络信息，给openflow的控制策略提供依据（选择路由路径等等）；
+    传统mesh网络路由协议自己会选择路由，如有三个路由器，均在mesh网络里且两两都在对方的中继范围内，此时如果在两个交换机之间传数据，mesh网络是不会经过第三个交换机进行中继的，而加入openflow之后就可以任意控制数据的路径（通过设置下一跳交换机的bat0端口的mac为目的mac，相当于在无线中继中指定下一跳的地址），下面四个程序只是做了一个简单的实现，
+
+文件：
+在_handle_PacketIn()函数内修改，在内部加入一个change()函数，简单给定一个路径path
+testlearning.py:根据l2_learning程序改编，给一个指定的路径，控制交换机之间的联通
+testmulti_eventdpid.py:根据packin内对应事件的dpid来下发流表
+testmulti_switches.py:根据字典switches来向交换机发流表
+
+根据multi程序改编，自己定义事件，添加listener，触发事件，简单给定一个路径path，和bat0的mac表bat0_mac，控制路径
+test_mesh_base.py(first commit):当开始启动程序，和l2_multi程序运行结果一样，只在两个交换机之间传数据，不经过第三个交换机中继，当80s过去,run()函数启动，触发MeshInstallpath事件，50002端口的数据就从第三个交换机中继过去，且每经过一个交换机，源和目的mac地址都改变
