@@ -255,36 +255,35 @@ class MeshInstallpath(Event):
   '''
   Mesh network
   '''
-  def __init__ (self, bat0_mac ,source, weight , path , groupid):
+  def __init__ (self, bat0_mac , weight , path , groupid):
     Event.__init__(self)
     self.bat0_mac = bat0_mac
     self.weight = weight
     self.path = path
     self.groupid = groupid
-    self.source = source
 
 class MeshChangepath(Event):
   '''
   Mesh network
   '''
-  def __init__ (self, bat0_mac ,source, weight , path , groupid):
+  def __init__ (self, bat0_mac , weight , path , groupid):
     Event.__init__(self)
     self.bat0_mac = bat0_mac
     self.weight = weight
     self.path = path
     self.groupid = groupid
-    self.source = source
+
 class MeshDeletepath(Event):
   '''
   Mesh network
   '''
-  def __init__ (self, bat0_mac , source,weight , path , groupid):
+  def __init__ (self, bat0_mac , weight , path , groupid):
     Event.__init__(self)
     self.bat0_mac = bat0_mac
     self.weight = weight
     self.path = path
     self.groupid = groupid
-    self.source = source
+
 
 
 class handleMesh(object):
@@ -395,7 +394,7 @@ class Mesh(object): ##meshpath implement
 def run():
   time.sleep(80)
   imformation = 'I'
-  source = 0
+  #source = 0
   mesh_bat0_mac = {7:_7_bat,8:_8_bat,9:_9_bat}
   mesh_path = {1:[srcmac , (0 , 4)],2:[8,(4,6)],3:[7,(6,6)],4:[9,(6,3)],5:[aimmac,(3,0)]}
   print 'runnnnnnnnnnnnnnnnnnnnn'
@@ -406,7 +405,7 @@ def run():
   print mesh_bat0_mac
   print 'mesh_path'
   print mesh_path
-  core.l2_multi.raiseEvent(MeshInstallpath,mesh_bat0_mac,source ,mesh_weight,mesh_path,mesh_groupid)
+  core.l2_multi.raiseEvent(MeshInstallpath,mesh_bat0_mac,mesh_weight,mesh_path,mesh_groupid)
 
 class Switch (EventMixin):
   def __init__ (self):
