@@ -88,7 +88,7 @@ globle_group = {} #{groupid:multicast object}
 mesh_groupid = 1    ##mesh_paths id , each path corresponding to a mesh_groupid
 mesh_weight = 1
 channel = {7:{8:1,9:2},8:{7:2,9:4},9:{7:1,8:5}}  ##dpid : {dpid : linksituation} the larger the value of linksituation is,the worst the linksituation is 
-
+#channel = {7:{8:7,9:6},8:{7:6,9:4},9:{7:6,8:5}}
 ##################################mesh
 
 def _calc_paths ():
@@ -358,8 +358,8 @@ class Mesh(object): ##meshpath implement
     '''
     #if len(mesh_path.keys()) == len(m_path.keys()):
     
-
-    for i in mesh_path.keys():
+    if len(mesh_path.keys())>3: ##the sitiation more than one switch connects two hosts
+     for i in mesh_path.keys():
      
        print 'mesh_path[i][0]'
 
@@ -400,7 +400,17 @@ class Mesh(object): ##meshpath implement
          else:#inport is not outport
            msg.actions.append(of.ofp_action_output(port = mesh_path[i][1][1]))  
          switches[mesh_path[i][0]].connection.send(msg)##switches key is dpid whose type is int,so when we build path,we show take care
- 
+
+    else:  ##the sitiation only one switch connects two hosts
+         msg = of.ofp_flow_mod()
+         msg.match.in_port = mesh_path[2][1][0]
+         msg.match.dl_type = 0x800
+         msg.match.nw_tos= 0
+         msg.match.nw_proto=17   
+         msg.match.nw_src = hostmac_toip[mesh_path[1][0]]
+         msg.match.nw_dst = hostmac_toip[mesh_path[len(mesh_path.keys())][0]]
+         msg.actions.append(of.ofp_action_output(port = mesh_path[2][1][1]))   
+         switches[mesh_path[2][0]].connection.send(msg)  
   #def Mesh_Changepath(self):
   
   #def Mesh_Deletepath(self):
@@ -459,8 +469,8 @@ def chose_path(start,end,channel):##according to channel and hop to decide the f
   for i in whole_maxi:
     if whole_min == whole_maxi[i]:
       count[i] = whole_min
-  #print 'count'
-  #print count    
+  print 'count'
+  print count    
   if len(count.keys())>1:
     for i in count:
       if len(paths_dic[i])<min_hop:
@@ -478,15 +488,21 @@ def generate_mesh_path(adj,srcmac,dstmac):
   path = chose_path(mac_map[srcmac][0].dpid,mac_map[dstmac][0].dpid,channel)
 
   #print 'path = chose_path(mac_map[srcmac][0].dpid,mac_map[dstmac][0].dpid,channel)'
-  #print path
+  print path
   mesh_path = {}
-  mesh_path[1] = [srcmac,(0,mac_map[srcmac][1])]
-  mesh_path[2] = [mac_map[srcmac][0].dpid,(mac_map[srcmac][1],adj[switches[path[0]]][switches[path[1]]])]
-  mesh_path[len(path)+2] = [dstmac,(mac_map[dstmac][1],0)]
-  mesh_path[len(path)+1] = [mac_map[dstmac][0].dpid,(adj[switches[path[len(path)-1]]][switches[path[len(path)-2]]],mac_map[dstmac][1])]
-  #print mesh_path
-  for i in range(3,len(path)+1):
-    mesh_path[i] = [path[i-2],( adj[switches[path[i-2]]][switches[path[i-3]]] , adj[switches[path[i-2]]][switches[path[i-1]]] )]
+  if mac_map[srcmac][0].dpid == mac_map[dstmac][0].dpid:
+    mesh_path[1] = [srcmac,(0,mac_map[srcmac][1])]
+    mesh_path[2] = [mac_map[srcmac][0],(mac_map[srcmac][1],mac_map[dstmac][1])]
+    mesh_path[3] = [dstmac,(mac_map[dstmac][1],0)]
+  else:
+    mesh_path[1] = [srcmac,(0,mac_map[srcmac][1])]
+    mesh_path[2] = [mac_map[srcmac][0].dpid,(mac_map[srcmac][1],adj[switches[path[0]]][switches[path[1]]])]
+    mesh_path[len(path)+2] = [dstmac,(mac_map[dstmac][1],0)]
+    mesh_path[len(path)+1] = [mac_map[dstmac][0].dpid,(adj[switches[path[len(path)-1]]][switches[path[len(path)-2]]],mac_map[dstmac][1])]
+    #print mesh_path
+    if len(path)>2:
+      for i in range(3,len(path)+1):
+        mesh_path[i] = [path[i-2],( adj[switches[path[i-2]]][switches[path[i-3]]] , adj[switches[path[i-2]]][switches[path[i-1]]] )]
   #print mesh_path
   return mesh_path
 
@@ -620,9 +636,11 @@ class Switch (EventMixin):
     hostmac_toip[mac_match.dl_dst] = mac_match.nw_dst
     global mesh_bat0_mac,mesh_groupid,mesh_weight
     print '$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$'
+
     if packet.dst  in mac_map and packet.src  in mac_map :
       global mesh_path
       if len(switches.keys()) == len(adjacency.keys()):
+        #print adjacency
         mesh_path = generate_mesh_path(adjacency , mac_match.dl_src , mac_match.dl_dst)
         #core.l2_multi.raiseEvent(MeshInstallpath,mesh_bat0_mac,mesh_weight,mesh_path,mesh_groupid)
         if mesh_path not in mesh_paths.values():
