@@ -17,5 +17,15 @@ testmulti_switches.py:根据字典switches来向交换机发流表
 test_mesh_base.py(first commit):当开始启动程序，和l2_multi程序运行结果一样，只在两个交换机之间传数据，不经过第三个交换机中继，当80s过去,run()函数启动，触发MeshInstallpath事件，50002端口的数据就从第三个交换机中继过去，且每经过一个交换机，源和目的mac地址都改变
 test_mesh_base.py(second commit):删除MeshInstallpath事件中的参数source。
 
-（2）：路径path不确定，根据两点之间所有路径中的每条路径的最差一个链路的信道状况(字典channel)来确定两点之间的路径path，每一个路径对应一个mesh_groupid，每多一个路径mesh_groupid加1,globle_group[mesh_groupid]存放每一个路径的事件处理类(Mesh()类)的对象。
-test_mesh_adv.py(first commit):匹配源ip和目的ip和udp，修改下一跳mac地址，当有一条新的路生成的时候都会触发一次MeshInstallpath事件，进入事件处理函数，下发流表，流表一旦生产便会一直保持下去，下一步工作就是对这个进行完善。
+（2）：路径path不确定，根据两点之间所有路径中的每条路径的最差一个链路的信道状况(字典channel)来确定两点之间的路径path，每一个路径对应一个mesh_groupid，每多一个路径mesh_groupid加
+
+1,globle_group[mesh_groupid]存放每一个路径的事件处理类(Mesh()类)的对象。
+test_mesh_adv.py(first commit):
+    匹配源ip和目的ip和udp，修改下一跳mac地址，当有一条新的路生成的时候都会触发一次MeshInstallpath事件，进入事件处理函数，下发流表，流表一旦生产便会一直保持下去，下一步工作就是对这个进行完善。
+    mesh_paths为：mesh_path = {1:[srcmac , (0 , 4)],2:[8,(4,6)],3:[7,(6,6)],4:[9,(6,3)],5:[aimmac,(3,0)]}，mesh_paths为：{1：{1:[srcmac , (0 , 4)],2:[8,(4,6)],3:[7,(6,6)],4:[9,(6,3)],5:[aimmac,(3,0)]}，2：{1:[aimmac , (0 , 3)],2:[9,(3,6)],3:[7,(6,6)],4:[8,(6,4)],5:[srcmac,(4,0)]}}
+
+2:修改了mesh_path的格式，l2_multi原本的install_path()替换为了raise()：
+test_mesh_raise.py(first commit):
+    匹配源mac，不修改源mac，只修改目的mac和端口号，这样一个主机只能向一个主机发送数据，向多个主机发送数据时路径选择会有问题。
+    mesh_path格式改为：{IPAddr('10.0.0.60'): {IPAddr('10.0.0.50'): {1: [8, (4, 6)], 2: [7, (6, 6)], 3: [9, (6, 3)]}}}（源ip：目的ip：交换机路径），mesh_paths为：{IPAddr('10.0.0.50'): {IPAddr('10.0.0.60'): {1: [9, (3, 6)], 2: [7, (6, 6)], 3: [8, (6, 4)]}}, IPAddr('10.0.0.60'): {IPAddr('10.0.0.50'): {1: [8, (4, 6)], 2: [7, (6, 6)], 3: [9, (6, 3)]}}}。
+    l2_multi原本建立路径下发流表的install_path()替换为了raise()，也就是触发自己设计的事件，能互相ping通，视频可以互传，流表生成后就一直都存在
