@@ -32,10 +32,15 @@ test_mesh_base.py(second commit):删除MeshInstallpath事件中的参数source�
   
 ！！！！！！！！！！！！！！！！！！！！！！    
 3: 将l2_multi的install_path() 的选路算法_get_path()换成了自己设计的选路算法，同时修改目的mac，使得从一开始的icmp arp包就可以根据自己设计的路径传输，相当于一个基础的无线情景下的pox程序 
-###test_mesh_betta.py(first commit): 自己设计路径，因为要修改目的mac，所以不匹配目的mac地址   
+###test_mesh_betta.py(first commit): 
+    自己设计路径，因为要修改目的mac，所以不匹配目的mac地址;
+    可以根据channel的变化自适应的改变路径和流规则  （做过实验，可行！！定时改变channel的值，流表改变）
     
-    
-    
+###tmesh_betta_adv.py(first commit): 
+    channel根据交换机发来的数据（每5s发一次）在控制器里面得到，控制器link detected必须全部结束！！！不然会报错。最好是先启动pox，等link detected全结束之后再在交换机启动脚本  sh channel_iw.sh & , 这样link detected比较容易全部结束。
+    在所有交换机全连接上以后，自己设计个初始的init_channel,信道条件都为1，即只根据跳数来确定路径，当根据交换机发来的数据得到的channel不符合数据规则的时候，就用init_channel代替
+    可以根据channel的变化自适应的改变路径和流规则 （没做过实验，理论上肯定可行）
+    删掉了一些没用的找路的函数
     
     
     
