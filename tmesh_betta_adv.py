@@ -76,15 +76,37 @@ FLOW_HARD_TIMEOUT = 30
 # How long is allowable to set up a path?
 PATH_SETUP_TIME = 4
 
-_7_bat = '66:57:55:21:27:26'
+_7_bat = '16:55:0E:D1:5F:DD'
 _8_bat = 'DE:BD:53:F2:4D:A5'
 _9_bat = 'C2:FA:A5:FE:E5:FE' 
 mesh_bat0_mac = {7:EthAddr(_7_bat),8:EthAddr(_8_bat),9:EthAddr(_9_bat)}
 
 channel = {}  ##dpid : {dpid : linksituation} the larger the value of linksituation is,the worst the linksituation is 
-init_channel = {}
+#init_channel = {}
 temp_channel = {}
 channel_flag = 0
+
+#########################################################a sw join in controller pox,reinit channel
+def initial_channel():
+        #print len(channel.keys())
+        #print len(switches.keys())
+        ##when a sw disconnect to or join in controller pox,the switches.keys() change ,reinit channel ;!!!!the situation a sw disconnect to controller,the len(switches.keys()) cant change ,
+       
+        if len(channel.keys()) != len(switches.keys()):
+          print 'len(channel.keys()) != len(switches.keys()):'
+          print len(channel.keys())
+          print len(switches.keys())
+          initchannel()
+        else:
+          for i in channel.keys():
+            if len(channel[i].keys())!=len(switches.keys())-1:##when this situation happens ,reinit channel 
+              print 'len(channel[i].keys())!=len(switches.keys())-1:'
+              print len(channel[i].keys())
+              print len(switches.keys())-1
+              initchannel()
+              break
+      
+#########################################################a sw  join in controller pox,reinit channel              
 
 #########################################################get channel
 def generate_channel():
@@ -106,6 +128,8 @@ def generate_channel():
     time.sleep(3)
     
   ##initial channel
+  initchannel()
+  '''
   global channel ,init_channel
   for i in switches.keys():
     dicc = {}
@@ -118,11 +142,27 @@ def generate_channel():
   print 'init_channel'
   print init_channel
   print channel
-  
+  '''
   while 1:
 	client_sock, client_addr = s.accept()
         thread.start_new_thread(handle,(client_sock, client_addr))
 	
+def initchannel():
+  ##initial channel
+  global channel 
+  init_channel = {}
+  for i in switches.keys():
+    dicc = {}
+    for j in switches.keys():
+      if i != j:
+        dicc[j] = 100
+    #print dicc
+    init_channel[int(i)] = dicc  
+  channel = init_channel.copy()
+  print 'init_channel'
+  print init_channel
+  print channel
+
 
 def handle(client_sock, client_addr):
         dic = {}
@@ -157,17 +197,15 @@ def handle(client_sock, client_addr):
 	dicc = {}	
         dicc = mesh_point(dic)
         
-        global channel,temp_channel
-        channel[int(dpid[0])] = dicc
+        global channel,temp_channel,switches
         
-        ##when the lenth of channel.keys() is not the number of sw  ;   or  ;  the lenth of channel[i].keys() is not the number of sw -1 ,make the channel equal to init_channel
-        if len(channel.keys()) != len(switches.keys()):
-          channel = init_channel.copy()
-        else:
-          for i in channel.keys():
-            if len(channel[i].keys())!=len(switches.keys())-1:
-              channel = init_channel.copy()
-              break
+        for i in dicc.keys():##change channel with channel[int(dpid[0])][i],when a sw not in dicc.keys(),means it not within the scope of dpid[0].then it will remain init value 100
+          channel[int(dpid[0])][i] = dicc[i]
+        #channel[int(dpid[0])] = dicc
+        print len(channel.keys())
+        print len(switches.keys())
+        ##when a sw disconnect to or join in controller pox,the switches.keys() change ,reinit channel ;!!!!the situation a sw disconnect to controller,the len(switches.keys()) cant change ,
+        initial_channel()
         
         print channel
         '''
@@ -196,7 +234,9 @@ def mesh_point(dic):
       continue
     else:
       c.append(re.findall(str,i)[0])
-      dicc[int(re.findall(str,i)[0][7])] = dic[i]
+      for j in switches.keys():
+        if j == int(re.findall(str,i)[0][7]):
+          dicc[int(re.findall(str,i)[0][7])] = dic[i]
       #print re.findall(str,i)[0]
   return dicc
 
@@ -504,6 +544,9 @@ class Switch (EventMixin):
   def _handle_PacketIn (self, event):
     #print self.dpid
     #print '_handle_PacketIn (self, event):'
+    initial_channel()  ##when sw dont send iw channel info to pox,if a sw join in the pox,the init channel must change 
+    print 'switches'
+    print switches
     def flood ():
       """ Floods the packet """
       if self.is_holding_down:
@@ -599,6 +642,8 @@ class Switch (EventMixin):
     return True
 
   def _handle_ConnectionDown (self, event):
+  
+    del switches[self.dpid]
     self.disconnect()
 
 
@@ -677,6 +722,12 @@ class l2_multi (EventMixin):
       for mac in bad_macs:
         del mac_map[mac]
 
+  #def _handle_ConnectionDown (self, event):
+    #print '_handle_ConnectionDown (self, event):'
+    #sw = switches.get(event.dpid)
+    #sw.disconnect()
+    #del switches[event.dpid]
+    
   def _handle_ConnectionUp (self, event):
     sw = switches.get(event.dpid)
     if sw is None:
