@@ -76,11 +76,11 @@ FLOW_HARD_TIMEOUT = 30
 # How long is allowable to set up a path?
 PATH_SETUP_TIME = 4
 
-_7_bat = '16:55:0E:D1:5F:DD'
-_8_bat = 'DE:BD:53:F2:4D:A5'
-_9_bat = 'C2:FA:A5:FE:E5:FE' 
-mesh_bat0_mac = {7:EthAddr(_7_bat),8:EthAddr(_8_bat),9:EthAddr(_9_bat)}
-
+_7_bat = 'DE:EB:D8:D3:35:1F'
+_8_bat = '0A:52:99:DD:56:63'
+_9_bat = '6E:9F:70:28:FE:FF' 
+#mesh_bat0_mac = {7:EthAddr(_7_bat),8:EthAddr(_8_bat),9:EthAddr(_9_bat)}
+mesh_bat0_mac = {}
 channel = {}  ##dpid : {dpid : linksituation} the larger the value of linksituation is,the worst the linksituation is 
 #init_channel = {}
 temp_channel = {}
@@ -167,40 +167,42 @@ def initchannel():
 def handle(client_sock, client_addr):
         dic = {}
         dicc = {}
-	msg = client_sock.recv(16)
-	dpid = struct.unpack("!16s", msg)
-	msg = client_sock.recv(17)
-	mac = struct.unpack("!17s", msg)
-	#print "dpid is",dpid[0]
-	#print "mac is", mac[0]
-	msg = client_sock.recv(4)
-	#if len(msg) <= 0:
-	#	continue
-	ap_num = struct.unpack("!i", msg)
-	#print "AP number is %d" %ap_num[0]
-	for i in range(0, ap_num[0]):
-		#msg = client_sock.recv(struct.calcsize("i18s20sf"))
-		msg = client_sock.recv(struct.calcsize("!i18s20shf"))
-		#print struct.calcsize("!i18s20sf")
-		#print "msg is",
-		#print msg
-		mesh_num, bssid, essid, other, qual = struct.unpack("!i18s20shf", msg)
-		#mesh_num1 = struct.unpack("!i", mesh_num)
-		#bssid1 = struct.unpack("!18s", bssid)
-		#essid1 = struct.unpack("!20s", essid)
-		#qual1 = struct.unpack("!f", qual)
-		#print mesh_num, bssid, str(essid), qual
-		#print essid
-		if qual < 0:
-		  dic[str(essid)]=-qual
-		#print  essid
+        c=[]
+        d=[]
+        e=[]
+	
+	while 1:
+	  msg = client_sock.recv(1024)
+          #print msg
+          if len(msg)==0:
+            break
+          c = msg.split('\n')
+          for i in c:
+            d.append(i)
+        #print d
+        print 'recv finish'  
+        for i in d:
+          if i is '':
+            continue
+          e.append(i)
+        dpid = e[0].split('#')[0]
+	batmac = e[0].split('#')[1]
+        mesh_bat0_mac[int(dpid)] = EthAddr(batmac)
+        print mesh_bat0_mac
+        for i in range(1,len(e)):
+          
+          if int(e[i].split('#')[1])<0:
+            dic[e[i].split('#')[0]]=-int(e[i].split('#')[1])
+          else:
+            dic[e[i].split('#')[0]]=int(e[i].split('#')[1])
+        
 	dicc = {}	
         dicc = mesh_point(dic)
         
         global channel,temp_channel,switches
         
         for i in dicc.keys():##change channel with channel[int(dpid[0])][i],when a sw not in dicc.keys(),means it not within the scope of dpid[0].then it will remain init value 100
-          channel[int(dpid[0])][i] = dicc[i]
+          channel[int(dpid)][i] = dicc[i]
         #channel[int(dpid[0])] = dicc
         print len(channel.keys())
         print len(switches.keys())

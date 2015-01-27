@@ -35,8 +35,9 @@ test_mesh_base.py(second commit):删除MeshInstallpath事件中的参数source�
 ###test_mesh_betta.py(first commit): 
     自己设计路径，因为要修改目的mac，所以不匹配目的mac地址;
     可以根据channel的变化自适应的改变路径和流规则  （做过实验，可行！！定时改变channel的值，流表改变）
-    
-###tmesh_betta_adv.py(first commit): 
+
+！！！chennel值是从交换机获得    
+###tmesh_betta_adv.py(first commit):   
     channel根据交换机发来的数据（每5s发一次）在控制器里面得到，控制器link detected必须全部结束！！！不然会报错。最好是先启动pox，等link detected全结束之后再在交换机启动脚本  sh channel_iw.sh & , 这样link detected比较容易全部结束。
     在所有交换机全连接上以后，自己设计个初始的init_channel,信道条件都为1，即只根据跳数来确定路径，当根据交换机发来的数据得到的channel不符合数据规则的时候，就用init_channel代替
     可以根据channel的变化自适应的改变路径和流规则 （没做过实验，理论上肯定可行）
@@ -48,7 +49,11 @@ test_mesh_base.py(second commit):删除MeshInstallpath事件中的参数source�
     （1）：当交换机加入或者退出pox时（两种情况，一种是交换机一直给控制器发送iw channel信息，一种是交换机什么都不发），两种情况都会重新初始化channel（解决办法：通过增加判断函数initial_channel()实现）；但退出这个情况下的不能成功，因为就算交换机退出，但是switches里面相应的dpid也不会被删除，这个后面解决。
     （2）：交换机个数不变，交换机之间距离改变，可能会使得两个交换机之间联通不了，（解决办法：对应初始值channel，每来一个信息，改变一次，没有的还是初始值）
     
-    
-    
+###tmesh_betta_adv.py(third commit):  
+    ！！！之前的改变iw包来获取channel值的方法在wndr4300上有问题，交换机重启后无线就坏掉了，所以抛弃该方案   
+    这里channel值是根据自己写的程序和脚本来实现，不是之前的根据改变iw包来实现，所以不需要担心重启后无线会坏掉。
+    将交换机信道情况，dpid，和bat0的mac地址分别存到三个txt文件里scan.txt, dpid.txt , ifconfig.txt , 进行相应的匹配，找出需要的数据。所用到的处理程序为handle.c ，实现功能：从三个txt文件里面提取相应数据，并且将数据传送给控制器。要编译能在openwrt下运行的c程序；生成在openwrt下的可执行文件openwrthandle，需要指定控制器的ip。
+    将这些步骤写道脚本channel_iw.sh里面，等10s发一次数据给pox，等pox程序的link discovery运行结束时在所有交换机内启动脚本。控制器里面的bat0的mac现在不是一开始就知道的，要从接收到的信息里学习到，命令为： sh channel_iw.sh &
+    注意：channel_iw.sh和可执行文件openwrthandle要拷入在openwrt的同一个目录下
     
     
