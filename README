@@ -49,11 +49,13 @@ test_mesh_base.py(second commit):删除MeshInstallpath事件中的参数source�
     （1）：当交换机加入或者退出pox时（两种情况，一种是交换机一直给控制器发送iw channel信息，一种是交换机什么都不发），两种情况都会重新初始化channel（解决办法：通过增加判断函数initial_channel()实现）；但退出这个情况下的不能成功，因为就算交换机退出，但是switches里面相应的dpid也不会被删除，这个后面解决。
     （2）：交换机个数不变，交换机之间距离改变，可能会使得两个交换机之间联通不了，（解决办法：对应初始值channel，每来一个信息，改变一次，没有的还是初始值）
     
-###tmesh_betta_adv.py(third commit):  
+###tmesh_betta_adv.py(third commit):  ./pox.py forwarding.tmesh_betta_adv openflow.discovery --link-timeout=120  （ovs的盒子不需要openflow.keepalive加这个命令，pantou的则需要加上这个命令）
     ！！！之前的改变iw包来获取channel值的方法在wndr4300上有问题，交换机重启后无线就坏掉了，所以抛弃该方案   
     这里channel值是根据自己写的程序和脚本来实现，不是之前的根据改变iw包来实现，所以不需要担心重启后无线会坏掉。
     将交换机信道情况，dpid，和bat0的mac地址分别存到三个txt文件里scan.txt, dpid.txt , ifconfig.txt , 进行相应的匹配，找出需要的数据。所用到的处理程序为handle.c ，实现功能：从三个txt文件里面提取相应数据，并且将数据传送给控制器。要编译能在openwrt下运行的c程序；生成在openwrt下的可执行文件openwrthandle，需要指定控制器的ip。
     将这些步骤写道脚本channel_iw.sh里面，等10s发一次数据给pox，等pox程序的link discovery运行结束时在所有交换机内启动脚本。控制器里面的bat0的mac现在不是一开始就知道的，要从接收到的信息里学习到，命令为： sh channel_iw.sh &
     注意：channel_iw.sh和可执行文件openwrthandle要拷入在openwrt的同一个目录下
     
-    
+###tmesh_noadj_multi.py(first commit):  ./pox.py forwarding.tmesh_noadj_multi
+    ！！！思路：没有链路发现模块，根据一定方法生成mac_map和adjacency，在两个主机srcmac和dstmac地址之间找路径，规定交换机和交换机直接都是用6号端口连接（之前有链路发现模块时候，是可以将有线的连接加入的），只能应用于交换机直接是无线连接的环境，因此只要找到路径上的交换机和两个端点交换机连接到主机的端口就可以把整个链路建立起来。
+    模仿l2_multi，但是不需要链路发现，交换机内的程序可以在控制器没启动之前先跑起来，不会有任何影响，adjacency是根据channel得到的，和map_map根据macToPort得到（注意一些地方需要global，全局变量）。当map_map的数据得到完全之后两个主机之间就可以根据自己的策略建立路径了。存在问题：1.当客户端从一个交换机迁移到另外一个交换机，或者迁移到这个交换机的另外一个端口的时候，两个主机就不通了（原因估计是map_map不一定会更新）2.实现交换机直接无线连接和有线连接可以同时用的场景，即交换机和交换机之间连接的端口不是设定固定值6.
